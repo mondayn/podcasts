@@ -1,0 +1,11 @@
+{:deps {
+
+;; org.clojure/data.zip {:mvn/version "1.0.0"}
+;; org.clojure/data.xml {:mvn/version "0.0.8"}
+;; com.github.kyleburton/clj-xpath {:mvn/version "1.4.12"}
+clj-time/clj-time {:mvn/version "0.15.2"}
+;; techascent/tech.ml.dataset {:mvn/version "6.073"}
+
+com.draines/postal {:mvn/version "2.0.5"}        
+hiccup-table {:mvn/version "0.2.0"}
+}}
