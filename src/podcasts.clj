@@ -19,9 +19,8 @@
 (defn parse-feed
   "read xml into tree map"
   [feed]
-  (println "parse-feed called")
+  (println "parse-feed called" feed)
   (xml-seq (clojure.xml/parse feed)))
-
 
 (defn get-episodes [feed]
   (->>
@@ -32,21 +31,19 @@
    )
   )
 
+(def multi-parser
+  (f/formatter (t/default-time-zone)
+               "E, d MMM yyyy HH:mm z"
+               "E, d MMM yyyy HH:mm:ss Z"
+               "E, d MMM yyyy HH:mm:ss z"))
 
-(defn days-ago
-  "compute num days since published"
-  [x]
-  (t/in-days (t/interval
-              (f/parse (f/formatter :rfc822) x)
-              (t/now))))
-
-(defn custom-format-date [x]
-  "format date to my visual liking"
-  (f/unparse
-   (f/formatter "EEE, dd MMM yy")
-   (f/parse (f/formatter :rfc822) x
-          ;; "Wed, 17 Jun 2020 12:00:00 +0000"
-            )))
+(defn parse-date-str [s]
+  "given a date string returns formatted date and number of days ago"
+  (let [dt (f/parse multi-parser s)]
+    (list
+     (f/unparse (f/formatter "EEE, dd MMM yy") dt)
+     (t/in-days (t/interval dt (t/now))))
+))
 
 (defn get-dates [feed]
   "return the date and num days ago"
@@ -54,11 +51,12 @@
    feed
    (filter #(= :pubDate (:tag %)))
    (map #(first (:content %)))
-   (map #(cons (custom-format-date %) (list (days-ago %))))
+   (map parse-date-str)
+  ;;  (map #(cons (custom-format-date %) (list (days-ago %))))
    ))
 
 
-(def get-feeds
+(defn get-feeds []
   "return a list of podcast urls"
   (->>
    (slurp "src/feeds.txt")
@@ -78,16 +76,16 @@
    (map cons (repeat feed-title)) ;; add podcast title
    (rest)  ;; remove header record
    (filter #(< (last %) ndays))
+   (distinct)
    )
    )
 )
 
 (def get-recent-podcasts
   "stack recent episodes"
-  (->> get-feeds
-       (map #(get-recent-rss %))
-       (apply concat)))
-
+  (->> (get-feeds)
+       (pmap #(get-recent-rss %))
+        (apply concat)))
 
 (def format-table
   (clojure.string/replace
@@ -109,6 +107,7 @@ tr:nth-child(even) {
 }
 </style>
 ", #"\n" ""))
+
 
 (def make-html
   "make html table for emailing"
